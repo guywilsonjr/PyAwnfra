@@ -1,0 +1,24 @@
+version: 0.2
+env:
+  secrets-manager:
+      key: secret-id:json-key:version-stage:version-id
+      key: secret-id:json-key:version-stage:version-id
+  git-credential-helper: yes
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.7
+    commands:
+       - yum install nodejs
+       - npm install -g aws-cdk
+       - git install 
+  
+  build:
+    commands:
+       - command
+       - command
+  post_build:
+    commands:
+       - yum update
+   
