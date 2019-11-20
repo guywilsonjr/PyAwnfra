@@ -9,6 +9,8 @@ from aws_cdk import (
     aws_iam as iam,
 )
 
+from iam import permissions
+
 codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
 
 """
@@ -57,8 +59,18 @@ phases:
     # - paths
 """
 
+ACCOUNT_ID = core.Aws.ACCOUNT_ID
+PARTITION = core.Aws.PARTITION
+REGION = core.Aws.REGION
+
 
 class CodePipeline(core.Stack):
+    PERMS = iam.PolicyStatement(actions=["codebuild:CreateProject"])
+
+    def get_perms(self, project_arn: str) -> iam.PolicyStatement:
+
+        return self.PERMS
+
     def __init__(
         self, app: core.App, id: str, vpc: ec2.Vpc, secret: core.SecretValue
     ) -> None:
@@ -68,21 +80,19 @@ class CodePipeline(core.Stack):
             actions=["iam:DeleteRole"],
             resources=["TestAppPyAwnfraPipelin*BuildProject*"],
         )
-        cb_perms = iam.PolicyStatement(
-            actions=["codebuild:CreateProject"], resources=[f"{id}*"]
-        )
-        # iam.PolicyDocument(statements=[])
-        # Turnoff all outbound traffic iam:DeleteRole codebuild:CreateProject
-        build_role = iam.LazyRole(
+
+        build_project_id = "BuildProject"
+
+        build_role = iam.Role(
             self,
             "BuildRole",
             assumed_by=codebuild_service,
-            inline_policies=None,
+            # inline_policies={"BuildPolicy": iam.PolicyDocument(statements=[cb_perms])},
             max_session_duration=core.Duration.hours(1),
         )
-        cbpp = cb.PipelineProject(
+        self.project = cb.PipelineProject(
             self,
-            "BuildProject",
+            build_project_id,
             build_spec=None,
             role=build_role,
             security_groups=None,
@@ -90,9 +100,9 @@ class CodePipeline(core.Stack):
             timeout=None,
             vpc=None,
         )
-        iam.PolicyStatement(
-            actions=["codebuild:CreateProject"], resources=[cbpp.project_arn]
-        )
+        # self.PERMS.add_resources([self.project.project_arn])
+
+        # self.project.add_to_role_policy(self.PERMS)
 
         """
         cpa.CodeBuildAction(

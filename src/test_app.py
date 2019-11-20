@@ -1,6 +1,7 @@
 from aws_cdk import core, aws_secretsmanager as sm, aws_iam as iam, aws_ec2 as ec2
 from codepipeline.codepipeline import CodePipeline
 from secretsmanager.secrets import Secrets
+from vpc import vpc_infra
 
 import roles
 
@@ -12,9 +13,11 @@ class TestApp(core.Stack):
     def __init__(self, app: core.App, id: str) -> None:
         super().__init__(app, id)
         sec = Secrets(self, id, ["GitHubToken", "GitHubUser"])
-        vpc = ec2.Vpc(self, "VPC")
-        CodePipeline(self, "Pipeline", vpc, sec.secrets[0].secret_value)
-        # roles.RoleInfra(self, "RoleInfra")
+        vpc = vpc_infra.Vpc(self, "VPCInfra")
+        pipeline = CodePipeline(self, "Pipeline", vpc, sec.secrets[0].secret_value)
+        role_infra = roles.RoleInfra(self, "RoleInfra")
+        vpc.add_dependency(role_infra)
+        pipeline.add_dependency(role_infra)
 
 
 APP = core.App()
