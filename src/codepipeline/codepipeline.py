@@ -4,14 +4,16 @@ from aws_cdk import (
     aws_codepipeline as cp,
     aws_codepipeline_actions as cpa,
     aws_codebuild as cb,
+    aws_codecommit as cc,
     aws_ec2 as ec2,
     aws_secretsmanager as sm,
     aws_iam as iam,
+    aws_ssm as ssm,
+    aws_s3 as s3,
 )
 
 from iam import permissions
 
-codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
 
 """
 iam:DeleteRole  TestAppPyAwnfraPipelineC9F231D6-BuildRole41B77417-1JDP0IG2BNARN
@@ -62,6 +64,8 @@ phases:
 ACCOUNT_ID = core.Aws.ACCOUNT_ID
 PARTITION = core.Aws.PARTITION
 REGION = core.Aws.REGION
+codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
+codepipeline_service = iam.ServicePrincipal("codepipeline.us-west-2.amazonaws.com")
 
 
 class CodePipeline(core.Stack):
@@ -71,9 +75,7 @@ class CodePipeline(core.Stack):
 
         return self.PERMS
 
-    def __init__(
-        self, app: core.App, id: str, vpc: ec2.Vpc, secret: core.SecretValue
-    ) -> None:
+    def __init__(self, app: core.App, id: str, vpc: ec2.Vpc, token: str) -> None:
         super().__init__(app, id)
         art = cp.Artifact(artifact_name="GitHubToken")
         iam.PolicyStatement(
@@ -87,43 +89,50 @@ class CodePipeline(core.Stack):
             self,
             "BuildRole",
             assumed_by=codebuild_service,
-            # inline_policies={"BuildPolicy": iam.PolicyDocument(statements=[cb_perms])},
             max_session_duration=core.Duration.hours(1),
+        )
+
+        pipeline_role = iam.Role(
+            self,
+            "PipelineRole",
+            assumed_by=codepipeline_service,
+            max_session_duration=core.Duration.hours(4),
         )
         self.project = cb.PipelineProject(
             self,
             build_project_id,
-            build_spec=None,
+            build_spec=cb.BuildSpec.from_source_filename("buildspec.yml"),
             role=build_role,
-            security_groups=None,
-            subnet_selection=None,
-            timeout=None,
-            vpc=None,
         )
-        # self.PERMS.add_resources([self.project.project_arn])
+        # token = ssm.StringParameter.value_for_string_parameter(self, "GitHubToken")
+        artifact = cp.Artifact(artifact_name="Artifact")
+        artifact_bucket = s3.Bucket(self, "ArtifactBucket")
 
-        # self.project.add_to_role_policy(self.PERMS)
-
-        """
-        cpa.CodeBuildAction(
-            input=art,
-            project=cbpp,
-            extra_inputs=None,
-            outputs=None,
-            type=None,
-            action_name="act1test",
-        )
-        cpa.GitHubSourceAction(
-            oauth_token=secret,
-            output=art,
+        source_action = cpa.GitHubSourceAction(
+            oauth_token=token,
+            output=artifact,
             owner="Guywilsonjr",
             repo="PyAwnfra",
             action_name="Source",
         )
-        """
-        """
-        import_stage = cp.StageOptions(stage_name="Code Push", actions=[cpa])
-        build_stage = cp.StageOptions(stage_name="Code Build", actions=[])
-        git clone --mirror https://github.com/awslabs/aws-demo-php-simple-app.git my-repo-replica
-        """
-        # cp.Pipeline(self, "Pipeline")
+        cc_action = cpa.CodeCommitSourceAction(
+            output=artifact,
+            repository=cc.Repository.from_repository_name(
+                self, "Repo", repository_name="DeepRacer"
+            ),
+            action_name="CodeCommitTest",
+        )
+        source_stage = cp.StageOptions(stage_name="CodePush", actions=[source_action])
+
+        build_action = cpa.CodeBuildAction(
+            input=artifact, project=self.project, action_name="Build"
+        )
+        build_stage = cp.StageOptions(stage_name="Build", actions=[build_action])
+
+        cp.Pipeline(
+            self,
+            "Pipeline",
+            artifact_bucket=artifact_bucket,
+            stages=[source_stage, build_stage],
+            role=pipeline_role,
+        )

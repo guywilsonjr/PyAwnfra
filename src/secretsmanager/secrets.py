@@ -6,6 +6,6 @@ class Secrets(core.Stack):
         super().__init__(app, id)
         self.secret_map = dict()
         self.secrets = [
-            sm.Secret(self, f"{secret}", secret_name=f"{secret}")
+            sm.Secret(self, secret, secret_name=secret)
             for secret in secret_placeholders
         ]

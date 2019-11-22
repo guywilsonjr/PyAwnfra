@@ -28,8 +28,6 @@ def generate_service_actions(
         " and actions: ",
         action_list,
     )
-    print("Service: ", service, "\n", "Action List: ", action_list)
-    [print(f"{service}:{action}") for action in action_list]
     service_actions = [f"{service}:{action}" for action in action_list]
     logger.debug("Service Actions: ", service_actions)
     return service_actions
@@ -43,26 +41,9 @@ def generate_statement(
     actions = permissions[1]
     resource_template_list = permissions[2]
     resources = [resource.replace("*", f"{id}*") for resource in resource_template_list]
-    print(
-        f"Under permission: {permissions}",
-        f"Submitting Service: {service}",
-        f"Actions: {actions}",
-        f"Resources: {resources}",
-    )
     service_actions = generate_service_actions(service, actions)
-    print(service, "\n", actions, "\n", service_actions)
     return iam.PolicyStatement(actions=service_actions, resources=resources)
 
-
-SSM_USER_DATA_ACTIONS = ["ssm:UpdateInstanceInformation"]
-
-SSM_SESSION_MANAGER_ACTIONS = [
-    "ssmmessages:CreateDataChannel",
-    "ssmmessages:OpenControlChannel",
-    "ssmmessages:OpenDataChannel",
-    "ssmmessages:CreateControlChannel",
-    "s3:GetEncryptionConfiguration",
-]
 
 ASG_ACTIONS = {
     "ec2": [
@@ -110,12 +91,14 @@ EC2_GLOBAL_PERMS = (
     ],
     ["*"],
 )
-SECRET_PERMISSIONS = (
+GLOBAL_SECRET_PERMISSIONS = (
     "secretsmanager",
-    ["GetRandomPassword", "CreateSecret", "TagResource"],
+    ["GetRandomPassword", "CreateSecret", "TagResource", "GetSecretValue"],
     ["*"],
 )
 
+
+# Fix secrets use secret Ids aka secret name. This should be more of a function or something
 LOCAL_SECRET_PERMS = (
     "secretsmanager",
     ["DeleteSecret"],
@@ -127,26 +110,44 @@ IAM_ROLE_PERMS = (
     [
         "DeleteRole",
         "GetRole",
+        "GetRolePolicy",
+        "PutRolePolicy",
         "CreateRole",
         "PutRolePolicy",
         "DeleteRolePolicy",
+        "DetachRolePolicy",
         "PassRole",
+        "AttachRolePolicy",
+        "UpdateAssumeRolePolicy",
     ],
     [f"arn:{PARTITION}:iam::{ACCOUNT_ID}:role/*"],
 )
 
+S3_GLOBAL_PERMS = ("s3", ["CreateBucket", "DeleteBucket", "PutObject"], ["*"])
+
+S3_GLOBAL_STATEMENT = generate_global_policy_statement(
+    generate_service_actions(S3_GLOBAL_PERMS[0], S3_GLOBAL_PERMS[1])
+)
 
 CB_PROJECT_PERMS = (
     "codebuild",
-    ["CreateProject"],
+    ["CreateProject", "UpdateProject", "BatchGetProjects"],
     [f"arn:{PARTITION}:codebuild:{REGION}:{ACCOUNT_ID}:project/*"],
 )
-
+# GetParams is global
+SSM_GLOBAL_PERMS = (
+    "ssm",
+    ["GetParameters", "PutParameter", "AddTagsToResource", "DeleteParameter"],
+    ["*"],
+)
+SSM_GLOBAL_STATEMENT = generate_global_policy_statement(
+    generate_service_actions(SSM_GLOBAL_PERMS[0], SSM_GLOBAL_PERMS[1])
+)
 LOCAL_SECRET_ACTIONS = generate_service_actions(
     LOCAL_SECRET_PERMS[0], LOCAL_SECRET_PERMS[1]
 )
 GLOBAL_SECRET_STATEMENT = generate_global_policy_statement(
-    generate_service_actions(SECRET_PERMISSIONS[0], SECRET_PERMISSIONS[1])
+    generate_service_actions(GLOBAL_SECRET_PERMISSIONS[0], GLOBAL_SECRET_PERMISSIONS[1])
 )
 
 EC2_STATEMENT = generate_global_policy_statement(
@@ -157,10 +158,56 @@ CB_STATEMENT = generate_global_policy_statement(
     generate_service_actions(CB_PROJECT_PERMS[0], CB_PROJECT_PERMS[1])
 )
 
+CP_PERMS = (
+    "codepipeline",
+    [
+        "CreatePipeline",
+        "DeletePipeline",
+        "GetPipeline",
+        "UpdatePipeline",
+        "GetPipelineState",
+        "ListPipelines",
+        "DeleteWebhook",
+        "DeregisterWebhookWithThirdParty",
+        "ListWebhooks",
+        "PutWebhook",
+        "RegisterWebhookWithThirdParty",
+    ],
+    ["*"],
+)
+CP_STATEMENT = generate_global_policy_statement(
+    generate_service_actions(CP_PERMS[0], CP_PERMS[1])
+)
+
+
+# GetParams is global
+EVENT_RULE_PERMS = (
+    "events",
+    [
+        "PutRule",
+        "DescribeRule",
+        "RemoveTargets",
+        "PutTargets",
+        "ListRules",
+        "DeleteRule",
+    ],
+    ["*"],
+)
+EVENT_RULE_STATEMENT = generate_global_policy_statement(
+    generate_service_actions(EVENT_RULE_PERMS[0], EVENT_RULE_PERMS[1])
+)
+
 IAM_ROLE_ACTIONS = generate_service_actions(IAM_ROLE_PERMS[0], IAM_ROLE_PERMS[1])
-print("IAM_ROLE_ACTIONS: ", IAM_ROLE_ACTIONS)
 FLAT_RESOURCE_ACTIONS = [IAM_ROLE_PERMS, LOCAL_SECRET_PERMS]
-DEPLOY_STATEMENTS = [EC2_STATEMENT, GLOBAL_SECRET_STATEMENT, CB_STATEMENT]
+DEPLOY_STATEMENTS = [
+    EVENT_RULE_STATEMENT,
+    CP_STATEMENT,
+    EC2_STATEMENT,
+    GLOBAL_SECRET_STATEMENT,
+    CB_STATEMENT,
+    SSM_GLOBAL_STATEMENT,
+    S3_GLOBAL_STATEMENT,
+]
 DEPLOY_DOCUMENT = iam.PolicyDocument(statements=DEPLOY_STATEMENTS)
 
 

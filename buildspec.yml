@@ -1,9 +1,4 @@
 version: 0.2
-env:
-  secrets-manager:
-      key: secret-id:json-key:version-stage:version-id
-      key: secret-id:json-key:version-stage:version-id
-  git-credential-helper: yes
 
 phases:
   install:
