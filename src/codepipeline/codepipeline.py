@@ -12,8 +12,6 @@ from aws_cdk import (
     aws_s3 as s3,
 )
 
-from iam import permissions
-
 
 """
 iam:DeleteRole  TestAppPyAwnfraPipelineC9F231D6-BuildRole41B77417-1JDP0IG2BNARN
@@ -77,17 +75,11 @@ class CodePipeline(core.Stack):
 
     def __init__(self, app: core.App, id: str, vpc: ec2.Vpc, token: str) -> None:
         super().__init__(app, id)
-        art = cp.Artifact(artifact_name="GitHubToken")
-        iam.PolicyStatement(
-            actions=["iam:DeleteRole"],
-            resources=["TestAppPyAwnfraPipelin*BuildProject*"],
-        )
 
         build_project_id = "BuildProject"
-
         build_role = iam.Role(
             self,
-            "BuildRole",
+            "BuildsRole",
             assumed_by=codebuild_service,
             max_session_duration=core.Duration.hours(1),
         )
@@ -101,26 +93,21 @@ class CodePipeline(core.Stack):
         self.project = cb.PipelineProject(
             self,
             build_project_id,
+            environment=cb.LinuxBuildImage.AMAZON_LINUX_2,
             build_spec=cb.BuildSpec.from_source_filename("buildspec.yml"),
             role=build_role,
         )
-        # token = ssm.StringParameter.value_for_string_parameter(self, "GitHubToken")
+
+        print(self.project.node.children[0].environment)
         artifact = cp.Artifact(artifact_name="Artifact")
         artifact_bucket = s3.Bucket(self, "ArtifactBucket")
 
         source_action = cpa.GitHubSourceAction(
             oauth_token=token,
             output=artifact,
-            owner="Guywilsonjr",
+            owner="guywilsonjr",
             repo="PyAwnfra",
             action_name="Source",
-        )
-        cc_action = cpa.CodeCommitSourceAction(
-            output=artifact,
-            repository=cc.Repository.from_repository_name(
-                self, "Repo", repository_name="DeepRacer"
-            ),
-            action_name="CodeCommitTest",
         )
         source_stage = cp.StageOptions(stage_name="CodePush", actions=[source_action])
 
