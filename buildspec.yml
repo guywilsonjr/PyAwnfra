@@ -6,11 +6,12 @@ proxy:
 phases:
   install:
     runtime-versions:
-      python: 3.8
+      python: 3.7
       nodejs: 12
     commands:
        - npm install -g aws-cdk
        - apt-get install python3
+       - pip3 install --upgrade pip
        - pip3 install -r requirements.txt 
   
   build:
