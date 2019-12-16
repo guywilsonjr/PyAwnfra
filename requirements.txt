@@ -20,7 +20,6 @@ aws-cdk.cx-api
 aws-cdk.region-info
 cattrs==0.9.0
 importlib-metadata==0.19
-jsii==0.14.3
 more-itertools==7.2.0
 packaging==19.1
 pluggy==0.12.0
@@ -33,3 +32,4 @@ six==1.12.0
 typing-extensions
 wcwidth==0.1.7
 zipp==0.5.2
+jsii
