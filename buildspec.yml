@@ -8,8 +8,12 @@ phases:
     runtime-versions:
       nodejs: 12
     commands:
+       - python3 --version
+       - apt-get install update
+       - apt-get upgrade
        - npm install -g aws-cdk
        - apt-get install python3
+       - python3 --version
        - pip3 install --upgrade pip
        - pip3 install -r requirements.txt 
   
