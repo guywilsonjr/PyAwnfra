@@ -93,7 +93,10 @@ class CodePipeline(core.Stack):
         self.project = cb.PipelineProject(
             self,
             build_project_id,
-            environment=cb.LinuxBuildImage.AMAZON_LINUX_2,
+            environment=cb.BuildEnvironment(
+                build_image=cb.LinuxBuildImage.AMAZON_LINUX_2,
+                compute_type=cb.ComputeType.SMALL,
+            ),
             build_spec=cb.BuildSpec.from_source_filename("buildspec.yml"),
             role=build_role,
         )
@@ -122,4 +125,5 @@ class CodePipeline(core.Stack):
             artifact_bucket=artifact_bucket,
             stages=[source_stage, build_stage],
             role=pipeline_role,
+            restart_execution_on_update=True,
         )

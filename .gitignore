@@ -1,3 +1,9 @@
+# Personal additions
+.aws
+package-lock*
+node_modules/
+cdk*.json
+cdk.out/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
