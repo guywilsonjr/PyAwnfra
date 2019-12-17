@@ -10,8 +10,8 @@ phases:
     commands:
        - python3 --version
        - python --version
-       - apt-get update
-       - apt-get upgrade
+       - apt-get update -y
+       - apt-get upgrade -y
        - npm install -g aws-cdk
        - apt-get install python3
        - python3 --version
