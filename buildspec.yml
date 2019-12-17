@@ -18,6 +18,7 @@ phases:
        - python --version
        - pip3 install --upgrade pip
        - pip3 install -r requirements.txt 
+       - update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
   
   build:
     commands:
