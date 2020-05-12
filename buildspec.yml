@@ -7,6 +7,7 @@ phases:
   install:
     runtime-versions:
       nodejs: 12
+      python: 3.8
     commands:
        - python3 --version
        - python --version
@@ -22,5 +23,5 @@ phases:
   
   build:
     commands:
-       - cdk diff
+       - cdk synth
    

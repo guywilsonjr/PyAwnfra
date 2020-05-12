@@ -4,6 +4,13 @@ package-lock*
 node_modules/
 cdk*.json
 cdk.out/
+.idea/
+bin/
+lib64
+pyvenv.cfg
+share/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
