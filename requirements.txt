@@ -1,5 +1,7 @@
 attrs>=18.2
 cattrs
+black
+
 aws-cdk.app_delivery
 aws-cdk.aws-cloudwatch
 aws-cdk.aws-ec2

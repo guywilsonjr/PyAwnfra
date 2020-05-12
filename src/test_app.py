@@ -45,12 +45,28 @@ class TestApp(core.Stack):
         pipeline = CodePipeline(self, "Pipelines", token)
         build_project_id = "BuildProject"
 
-        pipeline_role = iam.Role(self, "PipelineRole", assumed_by=iam.CompositePrincipal(codepipeline_service, codebuild_service), max_session_duration=core.Duration.hours(4), )
-        self.project = cb.PipelineProject(self, build_project_id,
+        pipeline_role = iam.Role(
+            self,
+            "PipelineRole",
+            assumed_by=iam.CompositePrincipal(
+                cfn_endpoint,
+                codepipeline_service,
+                codebuild_service),
+            managed_policies=[
+                iam.ManagedPolicy.from_managed_policy_arn(
+                    self,
+                    'S3FullAccessPolicy', 'arn:aws:iam::aws:policy/AmazonS3FullAccess')],
+            max_session_duration=core.Duration.hours(4))
+
+        self.project = cb.PipelineProject(
+            self,
+            build_project_id,
+            build_spec=cb.BuildSpec.from_source_filename("buildspec.yml"),
+            role=pipeline_role,
             environment=cb.BuildEnvironment(
                 build_image=cb.LinuxBuildImage.STANDARD_3_0,
                 compute_type=cb.ComputeType.SMALL),
-            build_spec=cb.BuildSpec.from_source_filename("buildspec.yml"), role=pipeline_role)
+            )
 
         print(self.project.node.children[0].environment)
         source_output = cp.Artifact(artifact_name="source-output")
@@ -67,15 +83,27 @@ class TestApp(core.Stack):
 
         build_action = cpa.CodeBuildAction(
             input=source_output,
+            role=pipeline_role,
             project=self.project,
             action_name="Build",
             outputs=[build_output])
         build_stage = cp.StageOptions(stage_name="Build", actions=[build_action])
+        self_update_changeset_action = cpa.CloudFormationCreateReplaceChangeSetAction(
+            admin_permissions=True,
+            change_set_name='Changeset-{}'.format(stack_id),
+            role=pipeline_role,
+            stack_name=stack_id,
+            template_path=cp.ArtifactPath(artifact=build_output, file_name='cdk.out/TestAppPyAwnfra.template.json'),
+            action_name='PrepareChangeset',
+        )
+
+        self_update_stage = cp.StageOptions(stage_name="Self-Update", actions=[self_update_changeset_action])
+
         cp.Pipeline(
             self,
             "Pipeline",
             artifact_bucket=artifact_bucket,
-            stages=[source_stage, build_stage],
+            stages=[source_stage, build_stage, self_update_stage],
             role=pipeline_role,
             restart_execution_on_update=True)
 
