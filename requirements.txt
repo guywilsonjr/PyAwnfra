@@ -1,6 +1,5 @@
 attrs>=18.2
 cattrs
-cattrs>=1.0.0
 aws-cdk.app_delivery
 aws-cdk.aws-cloudwatch
 aws-cdk.aws-ec2
