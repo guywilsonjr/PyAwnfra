@@ -6,12 +6,6 @@ import aws_cdk.core as core
 import secretsmanager.secrets as secrets
 import aws_cdk.app_delivery as cicd
 
-
-GITHUB_USER_KEY = "GitHubUser"
-GITHUB_TOKEN_SECRET_KEY = "GitHubToken"
-SECRETS = [GITHUB_USER_KEY, GITHUB_TOKEN_SECRET_KEY]
-
-
 class MyServiceStackA(core.Stack):
     def __init__(self, stack_app: core.App, stack_id: str) -> None:
         super().__init__(stack_app, stack_id)
@@ -35,8 +29,8 @@ pipeline = codepipeline.Pipeline(pipeline_stack, "CodePipeline", # Mutating a Co
 
 # Configure the CodePipeline source - where your CDK App's source code is hosted
 source_output = codepipeline.Artifact()
-sec = secrets.SecretStack(pipeline_stack, "SecretInfra", SECRETS)
-token = sm.Secret.from_secret_arn(pipeline_stack, "TokenSecret", sec.secrets[1].secret_arn).secret_value
+test_secret = '6e73538433da80aeaa5b733e30c6a423a3c4522f'
+token = sm.Secret.from_secret_arn(pipeline_stack, "TokenSecret", test_secret).secret_value
 source = codepipeline_actions.GitHubSourceAction(
     oauth_token=token,
     output=source_output,
