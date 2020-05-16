@@ -42,11 +42,13 @@ class TestApp(core.Stack):
         token = sm.Secret.from_secret_arn(
             self, "TokenSecret", sec.secrets[1].secret_arn
         ).secret_value
-        pipeline = CodePipeline(self, "Pipelines", token)
-        build_project_id = "BuildProject"
+        stack_name = "PipelineStack"
+
+        pipeline_stack = CodePipeline(self, stack_name, token)
+        build_project_id = "BuildProjects"
 
         pipeline_role = iam.Role(
-            self,
+            pipeline_stack,
             "PipelineRole",
             assumed_by=iam.CompositePrincipal(
                 cfn_endpoint,
@@ -59,19 +61,20 @@ class TestApp(core.Stack):
             max_session_duration=core.Duration.hours(4))
 
         self.project = cb.PipelineProject(
-            self,
+            pipeline_stack,
             build_project_id,
-            build_spec=cb.BuildSpec.from_source_filename("buildspec.yml"),
+            build_spec=cb.BuildSpec.from_source_filename("buildspec.temp.yml"),
             role=pipeline_role,
             environment=cb.BuildEnvironment(
                 build_image=cb.LinuxBuildImage.STANDARD_3_0,
                 compute_type=cb.ComputeType.SMALL),
+
             )
 
         print(self.project.node.children[0].environment)
         source_output = cp.Artifact(artifact_name="source-output")
         build_output = cp.Artifact(artifact_name="build-output")
-        artifact_bucket = s3.Bucket(self, "ArtifactBucket")
+        artifact_bucket = s3.Bucket(pipeline_stack, "ArtifactBucket")
 
         source_action = cpa.GitHubSourceAction(
             oauth_token=token,
@@ -88,24 +91,25 @@ class TestApp(core.Stack):
             action_name="Build",
             outputs=[build_output])
         build_stage = cp.StageOptions(stage_name="Build", actions=[build_action])
-        self_update_changeset_action = cpa.CloudFormationCreateReplaceChangeSetAction(
+        self_update_changeset_action = ad.PipelineDeployStackAction(
             admin_permissions=True,
             change_set_name='Changeset-{}'.format(stack_id),
             role=pipeline_role,
-            stack_name=stack_id,
-            template_path=cp.ArtifactPath(artifact=build_output, file_name='cdk.out/TestAppPyAwnfra.template.json'),
-            action_name='PrepareChangeset',
+            input=build_output,
+            stack=pipeline_stack,
         )
 
-        self_update_stage = cp.StageOptions(stage_name="Self-Update", actions=[self_update_changeset_action])
+        self_update_stage = cp.StageOptions(stage_name="Self-Update", actions=[self_update_changeset_action], placement=cp.StagePlacement(just_after=build_stage))
 
         cp.Pipeline(
-            self,
+            pipeline_stack,
             "Pipeline",
             artifact_bucket=artifact_bucket,
             stages=[source_stage, build_stage, self_update_stage],
             role=pipeline_role,
             restart_execution_on_update=True)
+            
+
 
 # noinspection PyArgumentList
 test_app = core.App()

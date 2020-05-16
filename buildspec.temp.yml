@@ -1,0 +1,27 @@
+version: 0.2
+proxy:
+  upload-artifacts: yes
+  logs: yes
+ 
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+      python: 3.8
+    commands:
+       - python3 --version
+       - python --version
+       - apt-get update -y
+       - apt-get upgrade -y
+       - npm install -g aws-cdk
+       - apt-get install python3
+       - python3 --version
+       - python --version
+       - pip3 install --upgrade pip
+       - pip3 install -r requirements.txt 
+       - update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
+  
+  build:
+    commands:
+       - cdk synth
+   
