@@ -17,7 +17,7 @@ with open("README.md") as fp:
 
 setuptools.setup(
     name="PyAwnfra",
-    version="0.0.1",
+    version="0.0.0.dev0",
     description="An AWS CDK Library for python",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -36,7 +36,7 @@ setuptools.setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: GNU GENERAL PUBLIC LICENSE",
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
         "Programming Language :: Python :: 3.7",
