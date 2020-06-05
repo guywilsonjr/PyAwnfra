@@ -48,12 +48,10 @@ class PipelineParams:
 
     def __init__(
             self,
-            github_user: str,
             primary_repo: RepoData,
             extra_repos: List[RepoData],
             github_token: core.SecretValue,
             build_env_vars: dict):
-        self.github_user = github_user
         self.primary_repo = primary_repo
         self.extra_repos = extra_repos
         self.github_token = github_token
@@ -95,7 +93,7 @@ class PipelineStack(core.Stack):
 
             kms_key,
 
-            build_env_vars,
+            params.build_env_vars,
 
             primary_source_output,
             extra_source_outputs)
