@@ -43,10 +43,22 @@ class RepoData:
 class PipelineParams:
     primary_repo: RepoData
     extra_repos: List[RepoData]
+    github_token: core.SecretValue
+    build_env_vars: dict
 
-    def __init__(self, primary_repo: RepoData, extra_repos: List[RepoData]):
+    def __init__(
+            self,
+            github_user: str,
+            primary_repo: RepoData,
+            extra_repos: List[RepoData],
+            github_token: core.SecretValue,
+            build_env_vars: dict):
+        self.github_user = github_user
         self.primary_repo = primary_repo
         self.extra_repos = extra_repos
+        self.github_token = github_token
+        self.build_env_vars = build_env_vars
+
 
 class PipelineStack(core.Stack):
 
@@ -80,7 +92,11 @@ class PipelineStack(core.Stack):
         build_stage, build_output = self.create_build_stage(
             pipeline_stack,
             build_project_id,
+
             kms_key,
+
+            build_env_vars,
+
             primary_source_output,
             extra_source_outputs)
 
@@ -132,6 +148,7 @@ class PipelineStack(core.Stack):
             pipeline_stack: core.Stack,
             build_project_id: str,
             kms_key: kms.Key,
+            build_env_vars: dict,
             primary_input:cp.Artifact,
             extra_inputs: List[cp.Artifact]) -> (cp.StageOptions, cp.Artifact):
         build_output = cp.Artifact('BuildArtifact')
@@ -153,7 +170,9 @@ class PipelineStack(core.Stack):
             encryption_key=kms_key,
             environment=cb.BuildEnvironment(
                 build_image=cb.LinuxBuildImage.STANDARD_4_0,
-                compute_type=cb.ComputeType.SMALL))
+                compute_type=cb.ComputeType.SMALL),
+            environment_variables=build_env_vars)
+
 
         build_action = cpa.CodeBuildAction(
             input=primary_input,
