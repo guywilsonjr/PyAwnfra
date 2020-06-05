@@ -32,7 +32,6 @@ KMS_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AWSKeyM
 class RepoData:
     github_user: str
     repo_name: str
-    extra_repos: List[str]
     github_token: str
 
     def __init__(self, github_user, repo_name, github_token):
@@ -42,16 +41,12 @@ class RepoData:
 
 
 class PipelineParams:
-    github_user: str
     primary_repo: RepoData
     extra_repos: List[RepoData]
-    github_token: core.SecretValue
 
-    def __init__(self, github_user: str, primary_repo: RepoData, extra_repos: List[RepoData], github_token: core.SecretValue):
-        self.github_user = github_user
+    def __init__(self, primary_repo: RepoData, extra_repos: List[RepoData]):
         self.primary_repo = primary_repo
         self.extra_repos = extra_repos
-        self.github_token = github_token
 
 class PipelineStack(core.Stack):
 
@@ -59,7 +54,7 @@ class PipelineStack(core.Stack):
         self,
         app: core.App,
         stack_id: str,
-        build_spec,
+        kms_key: kms.Key,
         params):
 
         super().__init__(app, stack_id)
@@ -85,7 +80,7 @@ class PipelineStack(core.Stack):
         build_stage, build_output = self.create_build_stage(
             pipeline_stack,
             build_project_id,
-            'buildspec.yml',
+            kms_key,
             primary_source_output,
             extra_source_outputs)
 
@@ -112,17 +107,17 @@ class PipelineStack(core.Stack):
             print("{}_source_output".format(extra_repo_data.repo_name.lower()))
             extra_output_list.append(extra_output)
             extra_source_action = cpa.GitHubSourceAction(
-                oauth_token=params.github_token,
+                oauth_token=extra_repo_data.github_token,
                 output=extra_output,
-                owner=params.github_user,
+                owner=extra_repo_data.github_user,
                 repo=extra_repo_data.repo_name,
                 action_name="{}Source".format(extra_repo_data.repo_name))
             extra_source_action_list.append(extra_source_action)
 
         primary_source_action = cpa.GitHubSourceAction(
-            oauth_token=params.github_token,
+            oauth_token=params.primary_repo.github_token,
             output=primary_source_output,
-            owner=params.github_user,
+            owner=params.primary_repo.github_user,
             repo=params.primary_repo.repo_name,
             action_name="{}Source".format(params.primary_repo.repo_name))
 
@@ -136,7 +131,7 @@ class PipelineStack(core.Stack):
             self,
             pipeline_stack: core.Stack,
             build_project_id: str,
-            build_spec: str,
+            kms_key: kms.Key,
             primary_input:cp.Artifact,
             extra_inputs: List[cp.Artifact]) -> (cp.StageOptions, cp.Artifact):
         build_output = cp.Artifact('BuildArtifact')
@@ -154,23 +149,11 @@ class PipelineStack(core.Stack):
         self.project = cb.PipelineProject(
             pipeline_stack,
             build_project_id,
-            build_spec=cb.BuildSpec.from_source_filename(build_spec),
             role=self.build_role,
+            encryption_key=kms_key,
             environment=cb.BuildEnvironment(
                 build_image=cb.LinuxBuildImage.STANDARD_4_0,
                 compute_type=cb.ComputeType.SMALL))
-
-        self.pipeline_kms_key = kms.Key(pipeline_stack, 'PipelineKey')
-        pipeline_kms_policy_statement = iam.PolicyStatement(
-            actions=["kms:Decrypt",
-                     "kms:Encrypt",
-                     "kms:ReEncrypt*",
-                     "kms:GenerateDataKey*"],
-            resources=['*']
-        )
-        pipeline_kms_policy_statement.add_arn_principal(self.pipeline_role.role_arn)
-        pipeline_kms_policy_statement.add_arn_principal(self.build_role.role_arn)
-        self.pipeline_kms_key.node.default_child.key_policy.add_statements(pipeline_kms_policy_statement)
 
         build_action = cpa.CodeBuildAction(
             input=primary_input,
