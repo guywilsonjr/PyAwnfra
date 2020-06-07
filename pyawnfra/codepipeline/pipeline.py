@@ -61,7 +61,7 @@ class PipelineStack(core.Stack):
 
         self.pipeline_role = iam.Role(
             pipeline_stack,
-            "PipelineRole",
+            "PipelineRole",#TODO https://guywilsonjr.myjetbrains.com/youtrack/issue/DR-2
             assumed_by=codepipeline_service,
             managed_policies=[
                 Policy.S3_FULL_ACCESS_POLICY,
