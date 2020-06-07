@@ -1,5 +1,5 @@
 from aws_cdk import aws_iam as iam, region_info as reg
-
+#TODO https://guywilsonjr.myjetbrains.com/youtrack/issue/DR-1
 codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
 # noinspection PyTypeChecker
 codepipeline_service = iam.ServicePrincipal("codepipeline.us-west-2.amazonaws.com")
