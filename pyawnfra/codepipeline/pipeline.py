@@ -9,6 +9,8 @@ from aws_cdk import (
     aws_kms as kms,
     app_delivery as ad
 )
+from PyAwnfra.pyawnfra.iam.policy import Policy
+
 
 
 ACCOUNT_ID = core.Aws.ACCOUNT_ID
@@ -21,12 +23,7 @@ codepipeline_service = iam.ServicePrincipal("codepipeline.us-west-2.amazonaws.co
 # noinspection PyTypeCheckerfrom collections import namedtuple
 
 cfn_service = iam.ServicePrincipal("cloudformation.amazonaws.com")
-CODEPIPELINE_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AWSCodePipelineFullAccess')
-CODEBUILD_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AWSCodeBuildAdminAccess')
-CLOUDFORMATION_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AWSCloudFormationFullAccess')
-SECRETS_MANAGER_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('SecretsManagerReadWrite')
-S3_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3FullAccess')
-KMS_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AWSKeyManagementServicePowerUser')
+
 
 
 class RepoData:
@@ -58,6 +55,7 @@ class PipelineParams:
         self.build_env_vars = build_env_vars
 
 
+
 class PipelineStack(core.Stack):
 
     def __init__(
@@ -78,10 +76,10 @@ class PipelineStack(core.Stack):
             "PipelineRole",
             assumed_by=codepipeline_service,
             managed_policies=[
-                S3_FULL_ACCESS_POLICY,
-                KMS_FULL_ACCESS_POLICY,
-                SECRETS_MANAGER_FULL_ACCESS_POLICY,
-                CODEPIPELINE_FULL_ACCESS_POLICY],
+                Policy.S3_FULL_ACCESS_POLICY,
+                Policy.KMS_FULL_ACCESS_POLICY,
+                Policy.SECRETS_MANAGER_FULL_ACCESS_POLICY,
+                Policy.CODEPIPELINE_FULL_ACCESS_POLICY],
             max_session_duration=core.Duration.hours(4))
 
         artifact_bucket = s3.Bucket(pipeline_stack, "ArtifactBucket")
@@ -155,10 +153,10 @@ class PipelineStack(core.Stack):
             "BuildRole",
             assumed_by=codebuild_service,
             managed_policies=[
-                CODEBUILD_FULL_ACCESS_POLICY,
-                S3_FULL_ACCESS_POLICY,
-                KMS_FULL_ACCESS_POLICY,
-                SECRETS_MANAGER_FULL_ACCESS_POLICY],
+                Policy.CODEBUILD_FULL_ACCESS_POLICY,
+                Policy.S3_FULL_ACCESS_POLICY,
+                Policy.KMS_FULL_ACCESS_POLICY,
+                Policy.SECRETS_MANAGER_FULL_ACCESS_POLICY],
             max_session_duration=core.Duration.hours(4))
 
         self.project = cb.PipelineProject(
@@ -187,11 +185,12 @@ class PipelineStack(core.Stack):
             "ChangesetRole",
             assumed_by=cfn_service,
             managed_policies=[
-                CLOUDFORMATION_FULL_ACCESS_POLICY,
-                S3_FULL_ACCESS_POLICY,
-                KMS_FULL_ACCESS_POLICY,
-                SECRETS_MANAGER_FULL_ACCESS_POLICY,
-                CODEPIPELINE_FULL_ACCESS_POLICY],
+                Policy.CLOUDFORMATION_FULL_ACCESS_POLICY,
+                Policy.S3_FULL_ACCESS_POLICY,
+                Policy.KMS_FULL_ACCESS_POLICY,
+                Policy.SECRETS_MANAGER_FULL_ACCESS_POLICY,
+                Policy.IAM_FULL_ACCESS_POLICY,
+                Policy.CODEPIPELINE_FULL_ACCESS_POLICY],
             max_session_duration=core.Duration.hours(4))
 
         self_update_changeset_action = ad.PipelineDeployStackAction(
