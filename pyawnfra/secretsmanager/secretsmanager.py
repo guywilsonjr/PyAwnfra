@@ -10,6 +10,7 @@ class PreDefinedSecret:
         self.secret_name = secret_name
         self.secret_value = secret_value
 
+
 class SecretStack(core.Stack):
     kms_key: kms.Key
     secrets = {}
@@ -26,7 +27,6 @@ class SecretStack(core.Stack):
         )
         self.create_predefined_secrets(predefined_secrets) if predefined_secrets else None
         self.create_placeholders(secret_placeholders) if secret_placeholders else None
-
 
     def create_predefined_secrets(self, predefined_secrets: List[PreDefinedSecret]) -> None:
         for secret in predefined_secrets:

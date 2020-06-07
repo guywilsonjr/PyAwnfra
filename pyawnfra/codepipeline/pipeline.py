@@ -11,20 +11,9 @@ from aws_cdk import (
 )
 from PyAwnfra.pyawnfra.iam.policy import Policy
 
-
-
 ACCOUNT_ID = core.Aws.ACCOUNT_ID
 PARTITION = core.Aws.PARTITION
 REGION = core.Aws.REGION
-
-codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
-# noinspection PyTypeChecker
-codepipeline_service = iam.ServicePrincipal("codepipeline.us-west-2.amazonaws.com")
-# noinspection PyTypeCheckerfrom collections import namedtuple
-
-cfn_service = iam.ServicePrincipal("cloudformation.amazonaws.com")
-
-
 
 class RepoData:
     github_user: str
@@ -53,7 +42,6 @@ class PipelineParams:
         self.extra_repos = extra_repos
         self.github_token = github_token
         self.build_env_vars = build_env_vars
-
 
 
 class PipelineStack(core.Stack):
