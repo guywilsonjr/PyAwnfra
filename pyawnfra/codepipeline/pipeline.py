@@ -15,6 +15,7 @@ ACCOUNT_ID = core.Aws.ACCOUNT_ID
 PARTITION = core.Aws.PARTITION
 REGION = core.Aws.REGION
 
+
 class RepoData:
     github_user: str
     repo_name: str
@@ -76,11 +77,8 @@ class PipelineStack(core.Stack):
         build_stage, build_output = self.create_build_stage(
             pipeline_stack,
             build_project_id,
-
             kms_key,
-
             params.build_env_vars,
-
             primary_source_output,
             extra_source_outputs)
 
