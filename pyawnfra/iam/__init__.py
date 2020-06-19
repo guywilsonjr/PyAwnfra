@@ -2,12 +2,10 @@ from aws_cdk import aws_iam as iam, region_info as reg
 
 __all__ = ['policy']
 
-# noinspection
-codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
-# noinspection PyTypeChecker
-codepipeline_service = iam.ServicePrincipal("codepipeline.amazonaws.com")
-# noinspection PyTypeChecker
-cfn_service = iam.ServicePrincipal("cloudformation.amazonaws.com")
+
+CODEBUILD_PRINCIPAL = iam.ServicePrincipal("codebuild.amazonaws.com")
+CODEPIPELINE_PRINCIPAL = iam.ServicePrincipal("codepipeline.amazonaws.com")
+CFN_PRINCIPAL = iam.ServicePrincipal("cloudformation.amazonaws.com")
 
 
 

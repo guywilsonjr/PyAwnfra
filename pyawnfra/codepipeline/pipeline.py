@@ -10,13 +10,16 @@ from aws_cdk import (
     app_delivery as ad
 )
 from PyAwnfra.pyawnfra.iam.policy import Policy
-
+import PyAwnfra.pyawnfra.iam as pyiam
 ACCOUNT_ID = core.Aws.ACCOUNT_ID
 PARTITION = core.Aws.PARTITION
 REGION = core.Aws.REGION
 
 
 class RepoData:
+    '''
+    Class representing data needed to create a github source in codepipeline
+    '''
     github_user: str
     repo_name: str
     github_token: str
@@ -28,6 +31,9 @@ class RepoData:
 
 
 class PipelineParams:
+    '''
+    Parameters Needed to build a CDK pipeline
+    '''
     primary_repo: RepoData
     extra_repos: List[RepoData]
     github_token: core.SecretValue
@@ -63,7 +69,7 @@ class PipelineStack(core.Stack):
         self.pipeline_role = iam.Role(
             pipeline_stack,
             "PipelineRole",#TODO https://guywilsonjr.myjetbrains.com/youtrack/issue/DR-2
-            assumed_by=codepipeline_service,
+            assumed_by=pyiam.CODEPIPELINE_PRINCIPAL,
             managed_policies=[
                 Policy.S3_FULL_ACCESS_POLICY,
                 Policy.KMS_FULL_ACCESS_POLICY,
@@ -137,7 +143,7 @@ class PipelineStack(core.Stack):
         self.build_role = iam.Role(
             pipeline_stack,
             "BuildRole",
-            assumed_by=codebuild_service,
+            assumed_by=pyiam.CODEBUILD_PRINCIPAL,
             managed_policies=[
                 Policy.CODEBUILD_FULL_ACCESS_POLICY,
                 Policy.S3_FULL_ACCESS_POLICY,
@@ -169,7 +175,7 @@ class PipelineStack(core.Stack):
         self.changeset_role = iam.Role(
             pipeline_stack,
             "ChangesetRole",
-            assumed_by=cfn_service,
+            assumed_by=pyiam.CFN_PRINCIPAL,
             managed_policies=[
                 Policy.CLOUDFORMATION_FULL_ACCESS_POLICY,
                 Policy.S3_FULL_ACCESS_POLICY,

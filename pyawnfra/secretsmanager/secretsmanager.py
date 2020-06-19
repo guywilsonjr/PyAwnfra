@@ -2,6 +2,7 @@ from typing import List, Dict
 from aws_cdk import core,aws_kms as kms, aws_secretsmanager as sm, aws_iam as iam
 from PyAwnfra.pyawnfra.iam.actions import SecretsManagerActions as sma
 
+
 class PreDefinedSecret:
     secret_name: str
     secret_value: str
@@ -12,14 +13,26 @@ class PreDefinedSecret:
 
 
 class SecretStack(core.Stack):
+    '''
+    Stack that  holds your secrets
+    '''
     kms_key: kms.Key
-    secrets: Dict[str, sm.Secret]
+    undefined_secrets: Dict[str, sm.Secret]
+    defined_secrets: Dict[str, sm.CfnSecret]
     authorized_users = list()
-    access_policy = iam.PolicyDocument(
-        iam.PolicyStatement(
-            actions=sma.MAIN_ACTIONS
-        )
+    access_statement = iam.PolicyStatement(
+        actions=sma.MAIN_ACTIONS
     )
+
+    cfn_secret_resource_policy = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": sma.MAIN_ACTIONS,
+            "Principal": {"AWS": None}
+        }
+    }
+
     def __init__(
             self,
             app: core.App,
@@ -27,8 +40,15 @@ class SecretStack(core.Stack):
             authorized_users: List[iam.User],
             secret_placeholders=None,
             predefined_secrets=None) -> None:
+        '''
+        :param authorized_users: Users authorized for 'main' access to all of the secrets both placeholders and predefined
+        :param secret_placeholders: Secrets that will need to be updated at a later time
+        :param predefined_secrets: Secrets that already have determined secret values
+        '''
+
         super().__init__(app, construct_id)
-        self.secrets = {}
+        self.undefined_secrets = {}
+        self.defined_secrets = {}
         self.authorized_users = authorized_users
         self.kms_key = kms.Key(
             self,
@@ -39,9 +59,19 @@ class SecretStack(core.Stack):
         )
         self.create_predefined_secrets(predefined_secrets) if predefined_secrets else None
         self.create_placeholders(secret_placeholders) if secret_placeholders else None
+        self.add_secrets_policies()
 
-        [self.access_policy.add_arn_principal(allowed_user) for allowed_user in self.authorized_users]
-        [sm.ResourcePolicy(self, '{}AccessPolicy'.format(name), secret) for name, secret in self.secrets]
+    def add_secrets_policies(self):
+        [self.access_statement.add_arn_principal(user.user_arn) for user in self.authorized_users]
+        [secret.add_to_resource_policy(self.access_statement) for secret in self.undefined_secrets.values()]
+        self.cfn_secret_resource_policy['Statement']['Principal']['AWS'] = [user.user_arn for user in self.authorized_users]
+        for name, secret in self.defined_secrets.items():
+            sm.CfnResourcePolicy(
+                self,
+                '{}Policy'.format(name),
+                resource_policy=self.cfn_secret_resource_policy,
+                secret_id=name
+            )
 
     def create_predefined_secrets(self, predefined_secrets: List[PreDefinedSecret]) -> None:
         for secret in predefined_secrets:
@@ -52,7 +82,7 @@ class SecretStack(core.Stack):
                 name=secret.secret_name,
                 secret_string=secret.secret_value
             )
-            self.secrets[secret.secret_name] = secret_obj
+            self.defined_secrets[secret.secret_name] = secret_obj
 
     def create_placeholders(self, secret_placeholders: list) -> None:
         for secret in secret_placeholders:
@@ -61,6 +91,6 @@ class SecretStack(core.Stack):
                 secret,
                 encryption_key=self.kms_key,
                 secret_name=secret)
-            self.secrets[secret] = secret_obj
+            self.undefined_secrets[secret] = secret_obj
 
 

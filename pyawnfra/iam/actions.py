@@ -2,16 +2,20 @@ from aws_cdk import aws_iam as iam
 
 
 class SecretsManagerActions:
-    CREATE_SECRET = 'CreateSecret'
-    LIST_SECRETS = 'ListSecrets'
-    GET_RESOURCE_POLICY = 'GetResourcePolicy'
-    DESCRIBE_SECRET = 'DescribeSecret'
-    PUT_RESOURCE_POLICY = 'PutResourcePolicy'
-    PUT_SECRET_VALUE = 'PutSecretValue'
-    RESTORE_SECRET = 'RestoreSecret'
-    UPDATE_SECRET = 'UpdateSecret'
-    DELETE_RESOURCE_POLICY = 'DeleteResourcePolicy'
-    DELETE_SECRET = 'DeleteSecret'
+
+    def generate_action_name(action_name: str):
+        return 'secretsmanager:{}'.format(action_name)
+
+    CREATE_SECRET = generate_action_name('CreateSecret')
+    LIST_SECRETS = generate_action_name('ListSecrets')
+    GET_RESOURCE_POLICY = generate_action_name('GetResourcePolicy')
+    DESCRIBE_SECRET = generate_action_name('DescribeSecret')
+    PUT_RESOURCE_POLICY = generate_action_name('PutResourcePolicy')
+    PUT_SECRET_VALUE = generate_action_name('PutSecretValue')
+    RESTORE_SECRET = generate_action_name('RestoreSecret')
+    UPDATE_SECRET = generate_action_name('UpdateSecret')
+    DELETE_RESOURCE_POLICY = generate_action_name('DeleteResourcePolicy')
+    DELETE_SECRET = generate_action_name('DeleteSecret')
 
     MAIN_ACTIONS = [
         CREATE_SECRET,
