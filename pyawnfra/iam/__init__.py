@@ -1,6 +1,6 @@
 from aws_cdk import aws_iam as iam, region_info as reg
 
-__all__ = ['policy']
+__all__ = ['policy', 'actions']
 
 
 CODEBUILD_PRINCIPAL = iam.ServicePrincipal("codebuild.amazonaws.com")

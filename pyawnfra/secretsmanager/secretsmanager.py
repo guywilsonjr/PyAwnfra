@@ -12,7 +12,7 @@ class PreDefinedSecret:
         self.secret_value = secret_value
 
 
-class SecretStack(core.Stack):
+class Secrets(core.Stack):
     '''
     Stack that  holds your secrets
     '''
@@ -26,11 +26,13 @@ class SecretStack(core.Stack):
 
     cfn_secret_resource_policy = {
         "Version": "2012-10-17",
-        "Statement": {
-            "Effect": "Allow",
-            "Action": sma.MAIN_ACTIONS,
-            "Principal": {"AWS": None}
-        }
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": sma.MAIN_ACTIONS,
+                "Principal": {"AWS": None},
+            }
+        ]
     }
 
     def __init__(
@@ -64,7 +66,8 @@ class SecretStack(core.Stack):
     def add_secrets_policies(self):
         [self.access_statement.add_arn_principal(user.user_arn) for user in self.authorized_users]
         [secret.add_to_resource_policy(self.access_statement) for secret in self.undefined_secrets.values()]
-        self.cfn_secret_resource_policy['Statement']['Principal']['AWS'] = [user.user_arn for user in self.authorized_users]
+        self.cfn_secret_resource_policy['Statement'][0]['Principal']['AWS'] = self.authorized_users[0].user_arn
+        self.cfn_secret_resource_policy['Statement'][0]['Resource'] = '*'
         for name, secret in self.defined_secrets.items():
             sm.CfnResourcePolicy(
                 self,

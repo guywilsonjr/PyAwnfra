@@ -9,8 +9,8 @@ from aws_cdk import (
     aws_kms as kms,
     app_delivery as ad
 )
-from PyAwnfra.pyawnfra.iam.policy import Policy
-import PyAwnfra.pyawnfra.iam as pyiam
+
+import infra_roles
 ACCOUNT_ID = core.Aws.ACCOUNT_ID
 PARTITION = core.Aws.PARTITION
 REGION = core.Aws.REGION
@@ -53,6 +53,8 @@ class PipelineParams:
 
 class PipelineStack(core.Stack):
 
+    roles: infra_roles.Roles
+
     def __init__(
         self,
         app: core.App,
@@ -61,41 +63,31 @@ class PipelineStack(core.Stack):
         params):
 
         super().__init__(app, stack_id)
-
-        stack_name = "PipelineStack"
-        pipeline_stack = self
+        self.roles = infra_roles.Roles(self, 'Roles')
         build_project_id = "BuildProjects"
-
-        self.pipeline_role = iam.Role(
-            pipeline_stack,
-            "PipelineRole",#TODO https://guywilsonjr.myjetbrains.com/youtrack/issue/DR-2
-            assumed_by=pyiam.CODEPIPELINE_PRINCIPAL,
-            managed_policies=[
-                Policy.S3_FULL_ACCESS_POLICY,
-                Policy.KMS_FULL_ACCESS_POLICY,
-                Policy.SECRETS_MANAGER_FULL_ACCESS_POLICY,
-                Policy.CODEPIPELINE_FULL_ACCESS_POLICY],
-            max_session_duration=core.Duration.hours(4))
-
-        artifact_bucket = s3.Bucket(pipeline_stack, "ArtifactBucket")
-
+        artifact_bucket = s3.Bucket(self, "ArtifactBucket")
         source_stage, primary_source_output, extra_source_outputs = self.create_source_stage(params)
+
         build_stage, build_output = self.create_build_stage(
-            pipeline_stack,
             build_project_id,
             kms_key,
             params.build_env_vars,
             primary_source_output,
             extra_source_outputs)
 
-        self_update_stage = self.create_self_update_stage(pipeline_stack, build_output)
+        self_update_stage = self.create_self_update_stage(build_output)
         self.pipeline = cp.Pipeline(
-            pipeline_stack,
+            self,
             "Pipeline",
             artifact_bucket=artifact_bucket,
             stages=[source_stage, build_stage, self_update_stage],
-            role=self.pipeline_role,
+            role=self.roles.pipeline_role,
             restart_execution_on_update=True)
+
+
+        self.roles.pipeline_role.node.try_remove_child('DefaultPolicy')
+        self.roles.build_role.node.try_remove_child('DefaultPolicy')
+        self.roles.deployment_role.node.try_remove_child('DefaultPolicy')
 
 
     def create_source_stage(
@@ -133,68 +125,44 @@ class PipelineStack(core.Stack):
 
     def create_build_stage(
             self,
-            pipeline_stack: core.Stack,
             build_project_id: str,
             kms_key: kms.Key,
             build_env_vars: dict,
             primary_input:cp.Artifact,
             extra_inputs: List[cp.Artifact]) -> (cp.StageOptions, cp.Artifact):
         build_output = cp.Artifact('BuildArtifact')
-        self.build_role = iam.Role(
-            pipeline_stack,
-            "BuildRole",
-            assumed_by=pyiam.CODEBUILD_PRINCIPAL,
-            managed_policies=[
-                Policy.CODEBUILD_FULL_ACCESS_POLICY,
-                Policy.S3_FULL_ACCESS_POLICY,
-                Policy.KMS_FULL_ACCESS_POLICY,
-                Policy.SECRETS_MANAGER_FULL_ACCESS_POLICY],
-            max_session_duration=core.Duration.hours(4))
 
         self.project = cb.PipelineProject(
-            pipeline_stack,
+            self,
             build_project_id,
-            role=self.build_role,
+            role=self.roles.build_role,
             encryption_key=kms_key,
             environment=cb.BuildEnvironment(
                 build_image=cb.LinuxBuildImage.STANDARD_4_0,
                 compute_type=cb.ComputeType.SMALL),
             environment_variables=build_env_vars)
 
-
         build_action = cpa.CodeBuildAction(
             input=primary_input,
             extra_inputs=extra_inputs,
-            role=self.pipeline_role,
+            role=self.roles.pipeline_role,
             project=self.project,
             action_name="Build",
             outputs=[build_output])
         return cp.StageOptions(stage_name="Build", actions=[build_action]), build_output
 
-    def create_self_update_stage(self, pipeline_stack: core.Stack, build_output: cp.Artifact) -> cp.StageOptions:
-        self.changeset_role = iam.Role(
-            pipeline_stack,
-            "ChangesetRole",
-            assumed_by=pyiam.CFN_PRINCIPAL,
-            managed_policies=[
-                Policy.CLOUDFORMATION_FULL_ACCESS_POLICY,
-                Policy.S3_FULL_ACCESS_POLICY,
-                Policy.KMS_FULL_ACCESS_POLICY,
-                Policy.SECRETS_MANAGER_FULL_ACCESS_POLICY,
-                Policy.IAM_FULL_ACCESS_POLICY,
-                Policy.CODEPIPELINE_FULL_ACCESS_POLICY],
-            max_session_duration=core.Duration.hours(4))
+    def create_self_update_stage(self, build_output: cp.Artifact) -> cp.StageOptions:
 
-        self_update_changeset_action = ad.PipelineDeployStackAction(
+        deploy_action = ad.PipelineDeployStackAction(
             admin_permissions=True,
             change_set_name='Changeset-SelfUpdate',
-            role=self.changeset_role,
+            role=self.roles.deployment_role,
             input=build_output,
-            stack=pipeline_stack)
+            stack=self)
 
         return cp.StageOptions(
             stage_name="Self-Update",
-            actions=[self_update_changeset_action])
+            actions=[deploy_action])
 
 
 

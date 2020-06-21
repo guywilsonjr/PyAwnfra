@@ -1,10 +1,5 @@
 from aws_cdk import aws_iam as iam
 
-codebuild_service = iam.ServicePrincipal("codebuild.us-west-2.amazonaws.com")
-# noinspection PyTypeChecker
-codepipeline_service = iam.ServicePrincipal("codepipeline.us-west-2.amazonaws.com")
-# noinspection PyTypeCheckerfrom collections import namedtuple
-cfn_service = iam.ServicePrincipal("cloudformation.amazonaws.com")
 
 class Policy:
     CODEPIPELINE_FULL_ACCESS_POLICY = iam.ManagedPolicy.from_aws_managed_policy_name('AWSCodePipelineFullAccess')
