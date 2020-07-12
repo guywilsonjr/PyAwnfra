@@ -1,6 +1,5 @@
 from typing import List, Dict
-from aws_cdk import core,aws_kms as kms, aws_secretsmanager as sm, aws_iam as iam
-from PyAwnfra.pyawnfra.iam.actions import SecretsManagerActions as sma
+from aws_cdk import core, aws_kms as kms, aws_secretsmanager as sm, aws_iam as iam
 
 
 class PreDefinedSecret:
@@ -20,20 +19,6 @@ class Secrets(core.Stack):
     undefined_secrets: Dict[str, sm.Secret]
     defined_secrets: Dict[str, sm.CfnSecret]
     authorized_users = list()
-    access_statement = iam.PolicyStatement(
-        actions=sma.MAIN_ACTIONS
-    )
-
-    cfn_secret_resource_policy = {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": sma.MAIN_ACTIONS,
-                "Principal": {"AWS": None},
-            }
-        ]
-    }
 
     def __init__(
             self,
@@ -61,20 +46,6 @@ class Secrets(core.Stack):
         )
         self.create_predefined_secrets(predefined_secrets) if predefined_secrets else None
         self.create_placeholders(secret_placeholders) if secret_placeholders else None
-        self.add_secrets_policies()
-
-    def add_secrets_policies(self):
-        [self.access_statement.add_arn_principal(user.user_arn) for user in self.authorized_users]
-        [secret.add_to_resource_policy(self.access_statement) for secret in self.undefined_secrets.values()]
-        self.cfn_secret_resource_policy['Statement'][0]['Principal']['AWS'] = self.authorized_users[0].user_arn
-        self.cfn_secret_resource_policy['Statement'][0]['Resource'] = '*'
-        for name, secret in self.defined_secrets.items():
-            sm.CfnResourcePolicy(
-                self,
-                '{}Policy'.format(name),
-                resource_policy=self.cfn_secret_resource_policy,
-                secret_id=name
-            )
 
     def create_predefined_secrets(self, predefined_secrets: List[PreDefinedSecret]) -> None:
         for secret in predefined_secrets:
@@ -95,5 +66,3 @@ class Secrets(core.Stack):
                 encryption_key=self.kms_key,
                 secret_name=secret)
             self.undefined_secrets[secret] = secret_obj
-
-
