@@ -6,6 +6,7 @@ __all__ = ['policy', 'actions']
 CODEBUILD_PRINCIPAL = iam.ServicePrincipal("codebuild.amazonaws.com")
 CODEPIPELINE_PRINCIPAL = iam.ServicePrincipal("codepipeline.amazonaws.com")
 CFN_PRINCIPAL = iam.ServicePrincipal("cloudformation.amazonaws.com")
+LAMBDA_PRINCIPAL = iam.ServicePrincipal("lambda.amazonaws.com")
 
 
 
