@@ -6,6 +6,15 @@ class IAMActions:
     def generate_action_name(name, action_name: str):
         return '{}:{}'.format(name, action_name)
 
+class Route53Actions(IAMActions):
+    name = 'route53'
+    FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+    CREATE_HOSTED_ZONE = IAMActions.generate_action_name(name, 'CreateHostedZone')
+
+class CWLogsActions(IAMActions):
+    name = 'logs'
+    FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+
 
 class IAMIAMActions(IAMActions):
     name = 'iam'
