@@ -6,13 +6,25 @@ class IAMActions:
     def generate_action_name(name, action_name: str):
         return '{}:{}'.format(name, action_name)
 
+
 class Route53Actions(IAMActions):
     name = 'route53'
     FULL_ACCESS = IAMActions.generate_action_name(name, '*')
     CREATE_HOSTED_ZONE = IAMActions.generate_action_name(name, 'CreateHostedZone')
 
+
 class CWLogsActions(IAMActions):
     name = 'logs'
+    FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+
+
+class CWActions(IAMActions):
+    name = 'cloudwatch'
+    FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+
+
+class S3Actions(IAMActions):
+    name = 's3'
     FULL_ACCESS = IAMActions.generate_action_name(name, '*')
 
 
@@ -29,6 +41,13 @@ class STSActions(IAMActions):
 class CFNActions(IAMActions):
     name = 'cloudformation'
     FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+
+
+class LambdaActions(IAMActions):
+    name = 'lambda'
+    FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+    CREATE_FUNCTION = IAMActions.generate_action_name(name, 'CreateFunction')
+    DELETE_FUNCTION = IAMActions.generate_action_name(name, 'DeleteFunction')
 
 
 class KMSActions(IAMActions):
