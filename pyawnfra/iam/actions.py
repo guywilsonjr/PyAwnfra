@@ -43,6 +43,11 @@ class CFNActions(IAMActions):
     FULL_ACCESS = IAMActions.generate_action_name(name, '*')
 
 
+class EventsActions(IAMActions):
+    name = 'events'
+    FULL_ACCESS = IAMActions.generate_action_name(name, '*')
+
+
 class LambdaActions(IAMActions):
     name = 'lambda'
     FULL_ACCESS = IAMActions.generate_action_name(name, '*')

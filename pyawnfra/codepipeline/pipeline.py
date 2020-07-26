@@ -7,10 +7,10 @@ from aws_cdk import (
     aws_iam as iam,
     aws_s3 as s3,
     aws_kms as kms,
-    app_delivery as ad
+    #app_delivery as ad
 )
 
-import infra_roles
+
 ACCOUNT_ID = core.Aws.ACCOUNT_ID
 PARTITION = core.Aws.PARTITION
 REGION = core.Aws.REGION
@@ -53,19 +53,23 @@ class PipelineParams:
 
 class PipelineStack(core.Stack):
 
-    roles: infra_roles.Roles
+    roles: List[iam.Role]
 
     def __init__(
         self,
         app: core.App,
         stack_id: str,
         kms_key: kms.Key,
+        roles: List[iam.Role],
         params):
 
         super().__init__(app, stack_id)
-        self.roles = infra_roles.Roles(self, 'Roles')
+
         build_project_id = "BuildProjects"
         artifact_bucket = s3.Bucket(self, "ArtifactBucket")
+        src_artifact = cp.Artifact('Source Artifact')
+        cdk_artifact = cp.Artifact('CDK Artifact')
+
         source_stage, primary_source_output, extra_source_outputs = self.create_source_stage(params)
 
         build_stage, build_output = self.create_build_stage(
