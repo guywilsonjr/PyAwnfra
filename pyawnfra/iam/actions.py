@@ -53,6 +53,7 @@ class LambdaActions(IAMActions):
     FULL_ACCESS = IAMActions.generate_action_name(name, '*')
     CREATE_FUNCTION = IAMActions.generate_action_name(name, 'CreateFunction')
     DELETE_FUNCTION = IAMActions.generate_action_name(name, 'DeleteFunction')
+    INVOKE_FUNCTION = IAMActions.generate_action_name(name, 'InvokeFunction')
 
 
 class KMSActions(IAMActions):
