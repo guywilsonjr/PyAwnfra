@@ -11,8 +11,10 @@ class PipelineData:
     scope: cdk.App
     name: str
     env: cdk.Environment
-    syth_action: SimpleSynthAction
+    cloud_assembly_artifact: cp.Artifact
     source_action: cpa.BitBucketSourceAction
+    syth_action: SimpleSynthAction
+    app_stage: cdk.Stage
 
 
 class PipelineStack(Stack):
@@ -25,7 +27,7 @@ class PipelineStack(Stack):
             "Pipeline",
             cross_account_keys=False,
             self_mutating=True,
-            cloud_assembly_artifact=cloud_assembly_artifact,
+            cloud_assembly_artifact=pipeline_data.cloud_assembly_artifact,
             source_action=pipeline_data.source_action,
             synth_action=pipeline_data.syth_action
         )
