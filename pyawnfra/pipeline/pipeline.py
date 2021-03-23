@@ -13,7 +13,7 @@ class PipelineData:
     env: cdk.Environment
     cloud_assembly_artifact: cp.Artifact
     source_action: cpa.BitBucketSourceAction
-    syth_action: SimpleSynthAction
+    synth_action: SimpleSynthAction
     app_stage: cdk.Stage
 
 
