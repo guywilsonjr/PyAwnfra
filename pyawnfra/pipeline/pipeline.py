@@ -20,8 +20,6 @@ class PipelineData:
 class PipelineStack(Stack):
     def __init__(self, pipeline_data: PipelineData):
         super().__init__(pipeline_data.scope,pipeline_data.name, env=pipeline_data.env)
-        cloud_assembly_artifact = cp.Artifact('CloudAs')
-
         self.pipeline = CdkPipeline(
             self,
             "Pipeline",
@@ -29,7 +27,7 @@ class PipelineStack(Stack):
             self_mutating=True,
             cloud_assembly_artifact=pipeline_data.cloud_assembly_artifact,
             source_action=pipeline_data.source_action,
-            synth_action=pipeline_data.syth_action
+            synth_action=pipeline_data.synth_action
         )
         cfn_build_project = self.node.children[1].node.children[0].node.children[4].node.children[0].node.children[1].node.children[1]
         # Need Privileged mode for starting docker
