@@ -19,7 +19,7 @@ class PipelineData:
 
 class PipelineStack(Stack):
     def __init__(self, pipeline_data: PipelineData):
-        super().__init__(pipeline_data.scope,pipeline_data.name, env=pipeline_data.env)
+        super().__init__(pipeline_data.scope, pipeline_data.name, env=pipeline_data.env)
         self.pipeline = CdkPipeline(
             self,
             "Pipeline",
@@ -29,7 +29,12 @@ class PipelineStack(Stack):
             source_action=pipeline_data.source_action,
             synth_action=pipeline_data.synth_action
         )
-        cfn_build_project = self.node.children[1].node.children[0].node.children[4].node.children[0].node.children[1].node.children[1]
+        pipeline = self.pipeline.node.try_find_child('Pipeline')
+        build_stage = pipeline.node.try_find_child('Build')
+        synth_action = build_stage.node.try_find_child('Synthesize')
+        build_proj = synth_action.node.try_find_child('CdkBuildProject')
+        cfn_build_project = build_proj.node.default_child
+
         # Need Privileged mode for starting docker
         cfn_build_project.add_property_override("Environment.PrivilegedMode", "true")
         # Updating from v4 by default in aws-cdk to v5
