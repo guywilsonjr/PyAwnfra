@@ -1,23 +1,20 @@
 from typing import List
 from dataclasses import dataclass
 from aws_cdk.pipelines import CdkPipeline, SimpleSynthAction
-from aws_cdk import core as cdk
 from aws_cdk.core import Stack
-import aws_cdk.aws_codepipeline as cp
-import aws_cdk.aws_codepipeline_actions as cpa
-import aws_cdk.aws_iam as iam
-from aws_cdk.pipelines import SimpleSynthAction
-from aws_cdk import aws_codepipeline as cp, aws_codepipeline_actions as cpa
+from aws_cdk import core as cdk, aws_iam as iam, aws_codepipeline as cp, aws_codepipeline_actions as cpa, aws_codebuild as cb
+
 
 @dataclass(frozen=True)
 class PipelineData:
-    scope: cdk.App
+    scope: cdk.Stack
     name: str
     github_owner: str
     github_connection_arn: str
     repo_name: str
     repo_branch: str
     env: cdk.Environment
+    build_env: dict
     synth_install_commands: List[str]
     app_stage: cdk.Stage
 
@@ -34,7 +31,7 @@ class PipelineStack(Stack):
             cross_account_keys=False,
             cloud_assembly_artifact=self.cloud_assembly_artifact,
             source_action=cpa.BitBucketSourceAction(
-            role=iam.Role(
+            role=iam.LazyRole(
                 self,
                 'SourceRole',
                 assumed_by=iam.AccountPrincipal(self.account),
@@ -49,6 +46,11 @@ class PipelineStack(Stack):
         ),
             synth_action=SimpleSynthAction(
                 install_commands=pipeline_data.synth_install_commands,
+                environment=cb.BuildEnvironment(
+                    environment_variables={env_key: cb.BuildEnvironmentVariable(value=pipeline_data.build_env[env_key]) for env_key in pipeline_data.build_env},
+                    build_image=cb.LinuxBuildImage.STANDARD_5_0,
+                    compute_type=cb.ComputeType.SMALL,
+                    privileged=True),
                 synth_command='cdk synth',
                 action_name='Synthesize',
                 cloud_assembly_artifact=self.cloud_assembly_artifact,
